@@ -1,21 +1,15 @@
-# Use official Python runtime
+# Use Python 3.12 slim base image
 FROM python:3.12-slim
 
-# Set working directory
+# Set working directory inside the container
 WORKDIR /app
 
-# Copy requirements and install
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy application code
+# Copy your application code into the container
 COPY . .
 
-# Set the PORT environment variable
-ENV PORT 8080
-
-# Expose the port
+# Expose the port your app will listen on
+ENV PORT=8080
 EXPOSE 8080
 
-# Run the app
-CMD ["python", "app.py"]
+# Command to run your app (adjust if your entrypoint is different)
+CMD ["python", "main.py"]
