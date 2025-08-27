@@ -1,0 +1,2 @@
+# NovaTerminal
+The Nova app
