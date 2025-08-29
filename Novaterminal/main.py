@@ -1,4 +1,7 @@
 # --- CONFIG ---
+from fastapi import FastAPI
+app = FastAPI()
+
 from kivy.config import Config
 import random, os
 
@@ -1190,4 +1193,5 @@ class NovaApp(App):
 
 
 if __name__ == '__main__':
+
     NovaApp().run()
