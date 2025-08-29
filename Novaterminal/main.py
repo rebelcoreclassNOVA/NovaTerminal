@@ -2,13 +2,13 @@
 from fastapi import FastAPI
 app = FastAPI()
 
-from kivy.config import Config
-import random, os
+#from kivy.config import Config
+#import random, os
 
 random.seed(os.urandom(16))
 
 Config.set("kivy", "keyboard_mode", "system")  # 👈 Force Android system keyboard
-# Prefer SDL2 audio on Windows to avoid GStreamer DLL issues
+ Prefer SDL2 audio on Windows to avoid GStreamer DLL issues
 Config.set("kivy", "audio", "sdl2")
 os.environ["KIVY_AUDIO"] = "sdl2"
 from kivy.core.window import Window
@@ -1195,3 +1195,4 @@ class NovaApp(App):
 if __name__ == '__main__':
 
     NovaApp().run()
+
