@@ -1,23 +1,20 @@
-# Base image
-FROM python:3.12-slim
+# Use an official Python runtime as the base image
+FROM python:3.13-slim
 
 # Set working directory
 WORKDIR /app
 
-# Copy the zipped repo into the container
-COPY Novaterminal.zip .
+# Copy requirements first (for caching)
+COPY requirements.txt .
 
-# Install unzip and Python dependencies if any
-RUN apt-get update && apt-get install -y unzip && \
-    unzip Novaterminal.zip -d ./ && \
-    rm Novaterminal.zip
+# Install dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Optional: install dependencies if you have a requirements.txt inside the zip
-# RUN pip install -r requirements.txt
+# Copy the rest of the project
+COPY . .
 
-# Expose port for Cloud Run
-ENV PORT=8080
-EXPOSE 8080
+# Expose the port your app runs on
+EXPOSE 8000
 
-# Run your main script (adjust path if your main.py is inside a folder after unzip)
-CMD ["python", "Novaterminal/main.py"]
+# Start the web server (adjust "main:app" to match your entrypoint)
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
