@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>NOVA - Paralogic Engine</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+</head>
+<body>
+
+    <canvas id="data-stream-canvas"></canvas>
+
+    <div id="welcome-screen" class="screen">
+        <div class="background glitch-effect"></div>
+        <div class="menu-container">
+             <button id="menu-button" class="neon-button primary">Menu</button>
+             <div id="dropdown-menu" class="dropdown-content">
+                <button id="about-us-button">About Us</button>
+             </div>
+        </div>
+        <h1 id="welcome-title">TALK TO NOVA</h1>
+        <div class="button-container">
+            <button id="enter-button" class="neon-button primary">ENTER</button>
+            <button id="exit-button" class="neon-button danger">EXIT NOVA</button>
+        </div>
+    </div>
+
+    <div id="about-screen" class="screen hidden">
+        <div class="about-content-wrapper">
+             <h1>About NOVA</h1>
+             <div class="about-scrollable">
+                <h3><strong>Paralogic Engine</strong></h3>
+                <h3><strong>Project Goal</strong></h3>
+                <p>To develop the Paralogic Engine as a next-generation computational framework capable of dual-phase reasoning and multi-cycle processing...</p>
+                <h3><strong>Breakthroughs & Accomplishments</strong></h3>
+                <p>Successfully implemented dual-cycle processing capable of handling complex binary and non-binary logic operations...</p>
+                <h3><strong>Future Directions</strong></h3>
+                <p>Expand Paralogic Engine integration with autonomous AI systems to enhance reasoning, memory retention, and situational awareness...</p>
+                <h3><strong>Contact & Support</strong></h3>
+                <p>Email: rebelcore.class.nova@gmail.com<br>Cash App: $rebelcorenova</p>
+             </div>
+             <button id="about-back-button" class="neon-button primary">Back</button>
+        </div>
+    </div>
+
+    <div id="chat-screen" class="screen hidden">
+        <div class="chat-layout-wrapper">
+            <div class="top-bar">
+                <button id="back-button" class="neon-button secondary">< Back</button>
+                <h2>NOVA Chat</h2>
+            </div>
+            <div id="chat-container">
+                </div>
+            <form id="chat-form" class="chat-form">
+                <input type="text" id="input-box" placeholder="Message NOVA..." autocomplete="off">
+                <button id="send-button" type="submit">&#10148;</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- DOM ELEMENTS ---
+        const welcomeScreen = document.getElementById('welcome-screen');
+        const chatScreen = document.getElementById('chat-screen');
+        const aboutScreen = document.getElementById('about-screen');
+
+        const enterButton = document.getElementById('enter-button');
+        const exitButton = document.getElementById('exit-button');
+        const backButton = document.getElementById('back-button');
+        const aboutBackButton = document.getElementById('about-back-button');
+
+        const menuButton = document.getElementById('menu-button');
+        const dropdownMenu = document.getElementById('dropdown-menu');
+        const aboutUsButton = document.getElementById('about-us-button');
+
+        const chatForm = document.getElementById('chat-form');
+        const inputBox = document.getElementById('input-box');
+        const chatContainer = document.getElementById('chat-container');
+        const canvas = document.getElementById('data-stream-canvas');
+        const ctx = canvas.getContext('2d');
+
+        // --- SOUND SYNTHESIS (using Tone.js) ---
+        // Create a sound player to reduce latency
+        const player = (url) => new Tone.Player(url).toDestination();
+
+        const sounds = {
+            click: player("{{ url_for('static', filename='sounds/click.wav') }}"),
+            transition: player("{{ url_for('static', filename='sounds/Transition.wav') }}"),
+            send: player("{{ url_for('static', filename='sounds/send.wav') }}"),
+            novaMessage: player("{{ url_for('static', filename='sounds/nova_message.wav') }}"),
+            powerDown: player("{{ url_for('static', filename='sounds/power.wav') }}")
+        };
+
+        function playSound(sound) {
+            if (Tone.context.state !== 'running') {
+                Tone.context.resume();
+            }
+            sound.start();
+        }
+
+        // --- UI & CHAT LOGIC ---
+        function addBubble(text, sender) {
+            const bubble = document.createElement('div');
+            bubble.classList.add('chat-bubble', `${sender}-bubble`);
+            bubble.textContent = text;
+            chatContainer.appendChild(bubble);
+            // Scroll to the bottom
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const userInput = inputBox.value.trim();
+            if (!userInput) return;
+
+            playSound(sounds.send);
+            addBubble(userInput, 'user');
+            inputBox.value = '';
+
+            // Show typing indicator
+            const typingBubble = document.createElement('div');
+            typingBubble.classList.add('chat-bubble', 'typing-bubble');
+            typingBubble.textContent = 'NOVA is thinking...';
+            chatContainer.appendChild(typingBubble);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            // API call to the Flask backend
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: userInput }),
+                });
+
+                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                
+                const data = await response.json();
+                const novaResponse = data.response;
+                
+                // Display NOVA's response
+                chatContainer.removeChild(typingBubble);
+                playSound(sounds.novaMessage);
+                addBubble(novaResponse, 'nova');
+
+            } catch (error) {
+                console.error("Failed to get response from NOVA:", error);
+                chatContainer.removeChild(typingBubble);
+                addBubble('[Error communicating with Paralogic Engine]', 'nova');
+            }
+        }
+
+        // --- SCREEN TRANSITIONS ---
+        function showScreen(screenToShow) {
+            playSound(sounds.transition);
+            [welcomeScreen, chatScreen, aboutScreen].forEach(screen => {
+                screen.classList.toggle('hidden', screen !== screenToShow);
+            });
+        }
+
+        async function showChatScreen() {
+            showScreen(chatScreen);
+            inputBox.focus();
+            chatContainer.innerHTML = '';
+            // Fetch the initial message from the server
+            try {
+                const response = await fetch('/api/init');
+                const data = await response.json();
+                addBubble(data.response, 'nova');
+            } catch (error) {
+                 addBubble('Error initializing connection.', 'nova');
+            }
+        }
+
+        function showWelcomeScreen() { showScreen(welcomeScreen); }
+        function showAboutScreen() { showScreen(aboutScreen); }
+
+        function exitApp() {
+            playSound(sounds.powerDown);
+            document.body.classList.add('fade-out');
+            setTimeout(() => {
+                document.body.innerHTML = '<h1 class="offline-message">NOVA OFFLINE</h1>';
+                document.body.classList.remove('fade-out');
+            }, 600);
+        }
+
+        // --- EVENT LISTENERS ---
+        enterButton.addEventListener('click', showChatScreen);
+        backButton.addEventListener('click', showWelcomeScreen);
+        aboutBackButton.addEventListener('click', showWelcomeScreen);
+        exitButton.addEventListener('click', exitApp);
+        
+        chatForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            sendMessage();
+        });
+
+        menuButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            playSound(sounds.click);
+            dropdownMenu.classList.toggle('visible');
+        });
+        
+        aboutUsButton.addEventListener('click', () => {
+            showAboutScreen();
+            dropdownMenu.classList.remove('visible');
+        });
+
+        window.addEventListener('click', () => {
+             dropdownMenu.classList.remove('visible');
+        });
+
+        // --- CANVAS DATA STREAM EFFECT ---
+        const characters = 'NOVA0101PARALOGICENGINE';
+        const fontSize = 16;
+        let columns;
+        let drops;
+
+        function setupCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            columns = Math.floor(canvas.width / fontSize);
+            drops = Array(columns).fill(1).map(() => Math.random() * canvas.height);
+        }
+        
+        function drawDataStream() {
+            ctx.fillStyle = 'rgba(13, 13, 26, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#0af';
+            ctx.font = `${fontSize}px monospace`;
+            for (let i = 0; i < drops.length; i++) {
+                const text = characters[Math.floor(Math.random() * characters.length)];
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+        
+        window.addEventListener('resize', setupCanvas);
+        setupCanvas();
+        setInterval(drawDataStream, 50);
+    });
+    </script>
+</body>
+</html>
